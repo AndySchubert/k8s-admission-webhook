@@ -45,12 +45,16 @@ spec:
               mountPath: /tls
               readOnly: true
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              scheme: HTTPS
+              path: /readyz
               port: 8443
             initialDelaySeconds: 2
             periodSeconds: 5
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
               port: 8443
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -85,7 +89,7 @@ webhooks:
       matchExpressions:
         - key: kubernetes.io/metadata.name
           operator: NotIn
-          values: ["kube-system", "kube-public", "kube-node-lease"]
+          values: ["kube-system", "kube-public", "kube-node-lease", "platform-system"]
     objectSelector:
       matchExpressions:
         - key: app

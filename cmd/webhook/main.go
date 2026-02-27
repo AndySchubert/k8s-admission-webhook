@@ -9,14 +9,21 @@ import (
 
 func main() {
 	mux := http.NewServeMux()
+
 	mux.HandleFunc("/validate", admission.HandleValidate)
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 
 	log.Println("Starting webhook server on :8443")
 
-	err := http.ListenAndServe(
+	err := http.ListenAndServeTLS(
 		":8443",
-		// "/tls/tls.crt",
-		// "/tls/tls.key",
+		"/tls/tls.crt",
+		"/tls/tls.key",
 		mux,
 	)
 	if err != nil {
