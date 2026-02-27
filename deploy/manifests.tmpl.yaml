@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-admission-webhook
+  namespace: platform-system
+spec:
+  selector:
+    app: k8s-admission-webhook
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-admission-webhook
+  namespace: platform-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-admission-webhook
+  template:
+    metadata:
+      labels:
+        app: k8s-admission-webhook
+    spec:
+      containers:
+        - name: webhook
+          image: ghcr.io/andyschubert/k8s-admission-webhook:dev
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          ports:
+            - containerPort: 8443
+              name: https
+          volumeMounts:
+            - name: tls
+              mountPath: /tls
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: 8443
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8443
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: tls
+          secret:
+            secretName: webhook-tls
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: k8s-admission-webhook
+webhooks:
+  - name: pods.validate.k8s-admission-webhook.local
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Fail
+    timeoutSeconds: 5
+    clientConfig:
+      service:
+        name: k8s-admission-webhook
+        namespace: platform-system
+        path: /validate
+        port: 443
+      caBundle: __CA_BUNDLE__
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: ["kube-system", "kube-public", "kube-node-lease"]
+    objectSelector:
+      matchExpressions:
+        - key: app
+          operator: NotIn
+          values: ["k8s-admission-webhook"]
