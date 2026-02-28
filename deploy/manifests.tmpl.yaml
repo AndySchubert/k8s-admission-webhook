@@ -1,4 +1,15 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-policy
+  namespace: platform-system
+data:
+  policy.yaml: |
+    policies:
+      denyLatestTag: true
+      requireResources: true
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: k8s-admission-webhook
@@ -30,6 +41,9 @@ spec:
         - name: webhook
           image: ghcr.io/andyschubert/k8s-admission-webhook:dev
           imagePullPolicy: Always
+          env:
+            - name: POLICY_CONFIG
+              value: /etc/webhook/policy.yaml
           resources:
             requests:
               cpu: "50m"
@@ -43,6 +57,9 @@ spec:
           volumeMounts:
             - name: tls
               mountPath: /tls
+              readOnly: true
+            - name: policy
+              mountPath: /etc/webhook
               readOnly: true
           readinessProbe:
             httpGet:
@@ -62,6 +79,9 @@ spec:
         - name: tls
           secret:
             secretName: webhook-tls
+        - name: policy
+          configMap:
+            name: webhook-policy
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration

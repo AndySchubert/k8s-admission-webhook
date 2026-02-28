@@ -43,7 +43,10 @@ The webhook inspects the Pod spec and returns an allow/deny response.
 
 ```
 cmd/webhook/               # Application entrypoint
-internal/admission/        # Validation logic
+internal/admission/        # Validation logic + configurable policies
+  config.go                # PolicyConfig struct + YAML loader
+  handler.go               # HTTP handler (AdmissionReview)
+  policy.go                # Validation rules (configurable)
 deploy/                    # Kubernetes manifests (templated)
 certs/                     # Generated CA + server certs
 scripts/
@@ -82,6 +85,33 @@ kubectl create secret tls webhook-tls \
 
 ```bash
 kubectl apply -f deploy/manifests.yaml
+```
+
+---
+
+## Configurable Policies
+
+Policies are controlled via a YAML ConfigMap mounted at `/etc/webhook/policy.yaml`:
+
+```yaml
+policies:
+  denyLatestTag: true       # Reject :latest or untagged images
+  requireResources: true    # Require CPU & memory requests/limits
+```
+
+To customise, edit the `webhook-policy` ConfigMap and restart the pod:
+
+```bash
+kubectl edit configmap webhook-policy -n platform-system
+kubectl rollout restart deploy/k8s-admission-webhook -n platform-system
+```
+
+All policies default to **enabled** if the config file is missing.
+
+For local development, set the `POLICY_CONFIG` environment variable:
+
+```bash
+POLICY_CONFIG=./policy.yaml make run
 kubectl rollout status deploy/k8s-admission-webhook -n platform-system
 ```
 
@@ -220,23 +250,11 @@ Admission request UID=... Namespace=test Name=bad-pod-latest Operation=CREATE
 
 ## Future Improvements
 
-- Configurable policies via ConfigMap
 - Support for Deployments & StatefulSets
 - Prometheus metrics endpoint
 - Mutation webhook support
 - Integration tests using kind
 - Replace self-signed certificates with cert-manager
-
----
-
-## Why This Project?
-
-This repository demonstrates:
-
-- Deep understanding of Kubernetes control plane extensions
-- Secure TLS bootstrapping
-- Cluster-level policy enforcement
-- Practical platform engineering patterns in Go
 
 ---
 

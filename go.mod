@@ -3,6 +3,7 @@ module github.com/AndySchubert/k8s-admission-webhook
 go 1.22.2
 
 require (
+	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.29.0
 	k8s.io/apimachinery v0.29.0
 )

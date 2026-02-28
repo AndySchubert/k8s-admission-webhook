@@ -18,6 +18,15 @@ func envOrDefault(key, fallback string) string {
 func main() {
 	certFile := envOrDefault("TLS_CERT", "/tls/tls.crt")
 	keyFile := envOrDefault("TLS_KEY", "/tls/tls.key")
+	policyPath := envOrDefault("POLICY_CONFIG", "/etc/webhook/policy.yaml")
+
+	cfg, err := admission.LoadConfig(policyPath)
+	if err != nil {
+		log.Fatalf("failed to load policy config: %v", err)
+	}
+	log.Printf("Policy config: denyLatestTag=%v requireResources=%v",
+		cfg.Policies.DenyLatestTag, cfg.Policies.RequireResources)
+	admission.Init(cfg)
 
 	mux := http.NewServeMux()
 
@@ -31,7 +40,7 @@ func main() {
 
 	log.Println("Starting webhook server on :8443")
 
-	err := http.ListenAndServeTLS(
+	err = http.ListenAndServeTLS(
 		":8443",
 		certFile,
 		keyFile,

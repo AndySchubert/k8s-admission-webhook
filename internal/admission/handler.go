@@ -11,6 +11,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var policyCfg = DefaultConfig()
+
+// Init sets the policy configuration used by the admission handler.
+func Init(cfg *PolicyConfig) {
+	policyCfg = cfg
+}
+
 func HandleValidate(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -39,7 +46,7 @@ func HandleValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := ValidatePod(&pod)
+	result := ValidatePod(&pod, policyCfg)
 
 	response := admissionv1.AdmissionResponse{
 		UID:     req.UID,

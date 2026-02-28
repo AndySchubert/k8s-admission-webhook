@@ -12,10 +12,10 @@ type ValidationResult struct {
 	Message string
 }
 
-func ValidatePod(pod *corev1.Pod) ValidationResult {
+func ValidatePod(pod *corev1.Pod, cfg *PolicyConfig) ValidationResult {
 	for _, container := range pod.Spec.Containers {
 		// Rule 1: Disallow :latest tag or missing tag
-		if isLatestOrNoTag(container.Image) {
+		if cfg.Policies.DenyLatestTag && isLatestOrNoTag(container.Image) {
 			return ValidationResult{
 				Allowed: false,
 				Message: fmt.Sprintf("container %s uses disallowed image tag (latest or no tag)", container.Name),
@@ -23,7 +23,7 @@ func ValidatePod(pod *corev1.Pod) ValidationResult {
 		}
 
 		// Rule 2: Require CPU & Memory requests and limits
-		if !hasRequiredResources(container) {
+		if cfg.Policies.RequireResources && !hasRequiredResources(container) {
 			return ValidationResult{
 				Allowed: false,
 				Message: fmt.Sprintf("container %s must define cpu and memory requests and limits", container.Name),

@@ -33,3 +33,6 @@ go.work.sum
 
 # --- generated TLS/certs (do not commit) ---
 certs/
+
+# --- build output ---
+bin/
