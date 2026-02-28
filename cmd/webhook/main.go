@@ -3,11 +3,22 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/AndySchubert/k8s-admission-webhook/internal/admission"
 )
 
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
 func main() {
+	certFile := envOrDefault("TLS_CERT", "/tls/tls.crt")
+	keyFile := envOrDefault("TLS_KEY", "/tls/tls.key")
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/validate", admission.HandleValidate)
@@ -22,8 +33,8 @@ func main() {
 
 	err := http.ListenAndServeTLS(
 		":8443",
-		"/tls/tls.crt",
-		"/tls/tls.key",
+		certFile,
+		keyFile,
 		mux,
 	)
 	if err != nil {

@@ -55,5 +55,7 @@ func HandleValidate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(respReview)
+	if err := json.NewEncoder(w).Encode(respReview); err != nil {
+		log.Printf("failed to encode admission response: %v", err)
+	}
 }
